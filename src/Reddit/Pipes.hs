@@ -6,12 +6,12 @@ import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class
 import Data.Foldable (foldrM)
 import Pipes (Producer)
-import Reddit.API
-import Reddit.API.Types.Comment
-import Reddit.API.Types.Post
-import Reddit.API.Types.Listing
-import Reddit.API.Types.Options
-import Reddit.API.Types.Subreddit
+import Reddit
+import Reddit.Types.Comment
+import Reddit.Types.Post
+import Reddit.Types.Listing
+import Reddit.Types.Options
+import Reddit.Types.Subreddit
 import qualified Data.Set as Set
 import qualified Pipes
 
