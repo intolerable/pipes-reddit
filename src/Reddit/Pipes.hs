@@ -25,8 +25,7 @@ commentStream = redditStream getNewComments' commentID
 postStream :: MonadIO m => Interval -> Maybe Limit -> Maybe SubredditName -> Producer Post (RedditT m) ()
 postStream = redditStream (\opts r -> getPosts' opts New r) postID
 
-redditStream ::
-  (MonadIO m, Ord ord) => (Options a -> Maybe SubredditName -> RedditT m (Listing a res)) -> (res -> ord) -> Int -> Maybe Limit -> Maybe SubredditName -> Producer res (RedditT m) ()
+redditStream :: (MonadIO m, Ord ord) => (Options a -> Maybe SubredditName -> RedditT m (Listing a res)) -> (res -> ord) -> Int -> Maybe Limit -> Maybe SubredditName -> Producer res (RedditT m) ()
 redditStream f g interval opts r = go Set.empty
   where
     go set = do
