@@ -50,4 +50,4 @@ allUserComments username = go (Just Nothing)
     go (Just x) = do
       Listing _ a cs <- Pipes.lift $ getUserComments' (Options x (Just 100)) username
       mapM_ Pipes.yield cs
-      go $ Just $ After <$> a
+      go $ Just <$> After <$> a
