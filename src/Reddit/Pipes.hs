@@ -22,26 +22,24 @@ type Interval = Int
 
 type Limit = Int
 
-commentStream :: MonadIO m => Interval -> Maybe Limit -> Maybe SubredditName -> Producer Comment (RedditT m) ()
-commentStream = redditStream getNewComments' commentID
-
-postStream :: MonadIO m => Interval -> Maybe Limit -> Maybe SubredditName -> Producer Post (RedditT m) ()
-postStream = redditStream (\opts r -> getPosts' opts New r) postID
-
-redditStream :: (MonadIO m, Ord o) => (Options a -> Maybe SubredditName -> RedditT m (Listing a r)) -> (r -> o) -> Int -> Maybe Limit -> Maybe SubredditName -> Producer r (RedditT m) ()
-redditStream f g interval opts r = go Set.empty
-  where
-    go set = do
-      Listing _ _ cs <- Pipes.lift $ f (Options Nothing opts) r
-      set' <- foldrM handle set cs
+redditStream :: MonadIO m => Maybe SubredditName -> Maybe a -> Interval -> (b -> a) -> (Options a -> Maybe SubredditName -> RedditT m (Listing c b)) -> Producer b (RedditT m) ()
+redditStream sub pid interval f g = do
+  Listing _ _ xs <- Pipes.lift $ g (Options (Before <$> pid) (Just 100)) sub
+  mapM_ Pipes.yield xs
+  case xs of
+    [] -> do
       liftIO $ threadDelay $ interval * 1000 * 1000
-      go set'
-    handle comment set =
-      if Set.member (g comment) set
-        then return set
-        else do
-          Pipes.yield comment
-          return $ Set.insert (g comment) set
+      redditStream' sub pid interval f g
+    y : _ -> do
+      redditStream' sub (Just $ f y) interval f g
+
+postStream :: MonadIO m => Maybe SubredditName -> Interval -> Producer Post (RedditT m) ()
+postStream sub interval =
+  redditStream' sub Nothing interval postID (\o s -> getPosts' o New s)
+
+commentStream :: MonadIO m => Maybe SubredditName -> Interval -> Producer Comment (RedditT m) ()
+commentStream sub interval =
+  redditStream' sub Nothing interval commentID getNewComments'
 
 allUserComments :: MonadIO m => Username -> Producer Comment (RedditT m) ()
 allUserComments username = go (Just Nothing)
