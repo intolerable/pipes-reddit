@@ -1,12 +1,12 @@
 module Reddit.Pipes
   ( commentStream
   , postStream
+  , redditStream
   , allUserComments ) where
 
 import Control.Applicative
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class
-import Data.Foldable (foldrM)
 import Pipes (Producer)
 import Reddit
 import Reddit.Types.Comment
@@ -15,12 +15,9 @@ import Reddit.Types.Listing hiding (before, after)
 import Reddit.Types.Options
 import Reddit.Types.Subreddit
 import Reddit.Types.User
-import qualified Data.Set as Set
 import qualified Pipes
 
 type Interval = Int
-
-type Limit = Int
 
 redditStream :: MonadIO m => Maybe SubredditName -> Maybe a -> Interval -> (b -> a) -> (Options a -> Maybe SubredditName -> RedditT m (Listing c b)) -> Producer b (RedditT m) ()
 redditStream sub pid interval f g = do
@@ -29,17 +26,17 @@ redditStream sub pid interval f g = do
   case xs of
     [] -> do
       liftIO $ threadDelay $ interval * 1000 * 1000
-      redditStream' sub pid interval f g
+      redditStream sub pid interval f g
     y : _ -> do
-      redditStream' sub (Just $ f y) interval f g
+      redditStream sub (Just $ f y) interval f g
 
 postStream :: MonadIO m => Maybe SubredditName -> Interval -> Producer Post (RedditT m) ()
 postStream sub interval =
-  redditStream' sub Nothing interval postID (\o s -> getPosts' o New s)
+  redditStream sub Nothing interval postID (\o s -> getPosts' o New s)
 
 commentStream :: MonadIO m => Maybe SubredditName -> Interval -> Producer Comment (RedditT m) ()
 commentStream sub interval =
-  redditStream' sub Nothing interval commentID getNewComments'
+  redditStream sub Nothing interval commentID getNewComments'
 
 allUserComments :: MonadIO m => Username -> Producer Comment (RedditT m) ()
 allUserComments username = go (Just Nothing)
